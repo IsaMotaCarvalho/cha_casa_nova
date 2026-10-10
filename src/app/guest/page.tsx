@@ -231,7 +231,7 @@ export default function GuestPage() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Deixe uma mensagem para os anfitriões (Opcional)</label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Deixe uma mensagem para os Noivos (Opcional)</label>
                                 <textarea
                                     value={rsvpMessage}
                                     disabled={isSavingRsvp}

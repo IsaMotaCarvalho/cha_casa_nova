@@ -16,6 +16,34 @@ export default function GiftList({ gifts, onSelectGift }: GiftListProps) {
                 <p className="text-stone-600 text-sm">
                     Escolha um presente para nos ajudar a montar nosso cantinho! 🏠✨
                 </p>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <span className="text-stone-600 text-sm">Sugestão de cores para o nosso lar:</span>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                            <span
+                                className="w-5 h-5 rounded-full shadow ring-1 ring-stone-800"
+                                style={{ background: '#1a1a1a' }}
+                            />
+                            <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">Preto</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span
+                                className="w-5 h-5 rounded-full shadow ring-1 ring-stone-300"
+                                style={{ background: '#ffffff' }}
+                            />
+                            <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">Branco</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span
+                                className="w-5 h-5 rounded-full shadow ring-1 ring-stone-400"
+                                style={{ background: 'linear-gradient(135deg, #e8e8e8 0%, #b0b0b0 30%, #f5f5f5 50%, #909090 70%, #d0d0d0 100%)' }}
+                            />
+                            <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">Inox</span>
+                        </div>
+                    </div>
+                </div>
+                
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
