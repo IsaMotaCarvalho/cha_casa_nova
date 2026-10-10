@@ -20,35 +20,28 @@ export async function POST(request: Request) {
     try {
         const data = await request.json();
 
-        // Verifica se já existe um pedido deste convidado para este mesmo presente
+        // Evita que o mesmo convidado escolha o mesmo presente mais de uma vez
         const existingOrder = await Order.findOne({
             guestPhone: data.guestPhone,
             giftId: data.giftId
         });
 
         if (existingOrder) {
-            // Se já existe, atualiza somando as presentes para evitar duplicidade e manter fidelidade
-            const diff = Number(data.quantity) - existingOrder.quantity;
-            const newQty = Number(data.quantity);
-            const newTotalValue = newQty * existingOrder.quotaValue;
-
-            existingOrder.quantity = newQty;
-            existingOrder.totalValue = newTotalValue;
-            await existingOrder.save();
-
-            // Atualiza o Gift globalmente
-            await Gift.findByIdAndUpdate(data.giftId, {
-                $inc: { claimedQuotas: diff }
-            });
-
             return NextResponse.json(existingOrder, { status: 200 });
         }
 
         const order = await Order.create(data);
 
-        // Incrementa as presentes ocupadas no presente correspondente
+        // Registra a escolha também no próprio Gift (para o admin visualizar rapidamente)
         await Gift.findByIdAndUpdate(data.giftId, {
-            $inc: { claimedQuotas: Number(data.quantity) }
+            $push: {
+                reservations: {
+                    guestName: data.guestName,
+                    guestPhone: data.guestPhone,
+                    status: 'pendente',
+                    message: data.message || ''
+                }
+            }
         });
 
         return NextResponse.json(order, { status: 201 });
@@ -61,29 +54,10 @@ export async function PUT(request: Request) {
     await dbConnect();
     try {
         const data = await request.json();
-        const { id, status, quantity } = data;
-
-        const oldOrder = await Order.findById(id);
-        if (!oldOrder) {
-            return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 });
-        }
+        const { id, status } = data;
 
         const updateFields: any = {};
         if (status !== undefined) updateFields.status = status;
-
-        if (quantity !== undefined) {
-            const newQty = Number(quantity);
-            if (newQty !== oldOrder.quantity) {
-                const diff = newQty - oldOrder.quantity;
-                updateFields.quantity = newQty;
-                updateFields.totalValue = newQty * oldOrder.quotaValue;
-
-                // Atualiza o contador absoluto de presentes compradas do presente de forma real
-                await Gift.findByIdAndUpdate(oldOrder.giftId, {
-                    $inc: { claimedQuotas: diff }
-                });
-            }
-        }
 
         const order = await Order.findByIdAndUpdate(id, updateFields, { new: true });
         return NextResponse.json(order);
@@ -100,14 +74,14 @@ export async function DELETE(request: Request) {
 
         const order = await Order.findById(id);
         if (order) {
-            // Estorna exatamente a quantidade de presentes que haviam sido ocupadas
+            // Remove a reserva dentro do Gift
             await Gift.findByIdAndUpdate(order.giftId, {
-                $inc: { claimedQuotas: -Number(order.quantity) }
+                $pull: { reservations: { guestPhone: order.guestPhone } }
             });
             await Order.findByIdAndDelete(id);
         }
 
-        return NextResponse.json({ message: 'Pedido removido com sucesso e presentes estornadas com fidelidade.' });
+        return NextResponse.json({ message: 'Escolha removida com sucesso.' });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 400 });
     }

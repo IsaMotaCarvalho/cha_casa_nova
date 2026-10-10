@@ -11,21 +11,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'O carrinho está vazio ou é inválido.' }, { status: 400 });
         }
 
-        // Executa a inserção paralela em cada presente contido no carrinho do convidado
         const updatePromises = cart.map((item: any) => {
-            const { giftId, quantity, totalItemPrice } = item;
+            const { giftId } = item;
 
             return Gift.findByIdAndUpdate(
                 giftId,
                 {
-                    $inc: { claimedQuotas: Number(quantity) }, // Incrementa as presentes ocupadas
                     $push: {
                         reservations: {
                             guestName,
                             guestPhone,
-                            quantity: Number(quantity),
-                            totalValue: Number(totalItemPrice),
-                            status: 'pendente', // Todo pedido nasce pendente até o Admin confirmar
+                            status: 'pendente',
                             message: message || ''
                         }
                     }
@@ -36,7 +32,7 @@ export async function POST(request: Request) {
 
         await Promise.all(updatePromises);
 
-        return NextResponse.json({ success: true, message: 'presentes reservados com sucesso!' }, { status: 201 });
+        return NextResponse.json({ success: true, message: 'Presentes reservados com sucesso!' }, { status: 201 });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle, AlertCircle, DollarSign, Search, ClipboardList } from 'lucide-react';
+import { CheckCircle, AlertCircle, Search, ClipboardList } from 'lucide-react';
 
 interface QuotaOrdersProps {
     orders: any[];
@@ -12,25 +12,16 @@ export default function QuotaOrders({ orders, onUpdateOrderStatus }: QuotaOrders
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todos' | 'recebido' | 'pendente'>('todos');
 
-    // Cálculos dinâmicos dos cards superiores baseados na lista de pedidos ativa
-    const totalReceived = orders
-        .filter(o => o.status === 'recebido')
-        .reduce((acc, o) => acc + o.totalValue, 0);
+    const totalReceived = orders.filter(o => o.status === 'recebido').length;
+    const totalPending = orders.filter(o => o.status === 'pendente').length;
+    const total = orders.length;
 
-    const totalPending = orders
-        .filter(o => o.status === 'pendente')
-        .reduce((acc, o) => acc + o.totalValue, 0);
-
-    const totalIntended = totalReceived + totalPending;
-
-    // Regras do funil de filtragem e busca por nome ou presente
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             (order.guestName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (order.giftName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesStatus =
-            statusFilter === 'todos' || order.status === statusFilter;
+        const matchesStatus = statusFilter === 'todos' || order.status === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
@@ -38,15 +29,15 @@ export default function QuotaOrders({ orders, onUpdateOrderStatus }: QuotaOrders
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-2xl font-bold text-slate-800">Pipeline de presentes Recebidas (CRM)</h1>
+                <h1 className="text-2xl font-bold text-slate-800">Presentes Escolhidos pelos Convidados</h1>
             </div>
 
-            {/* Cards de Métricas Reativas */}
+            {/* Cards de Métricas */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-emerald-50/50 border border-emerald-200 p-6 rounded-2xl flex justify-between items-center shadow-sm">
                     <div className="space-y-1">
                         <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Confirmado / Recebido</span>
-                        <span className="text-2xl font-bold text-emerald-700">R$ {totalReceived.toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-emerald-700">{totalReceived}</span>
                     </div>
                     <CheckCircle className="text-emerald-500 w-6 h-6" />
                 </div>
@@ -54,17 +45,17 @@ export default function QuotaOrders({ orders, onUpdateOrderStatus }: QuotaOrders
                 <div className="bg-amber-50/50 border border-amber-200 p-6 rounded-2xl flex justify-between items-center shadow-sm">
                     <div className="space-y-1">
                         <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Aguardando Verificação</span>
-                        <span className="text-2xl font-bold text-amber-700">R$ {totalPending.toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-amber-700">{totalPending}</span>
                     </div>
                     <AlertCircle className="text-amber-500 w-6 h-6" />
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl flex justify-between items-center shadow-sm">
                     <div className="space-y-1">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Geral Intencionado</span>
-                        <span className="text-2xl font-bold text-slate-800">R$ {totalIntended.toFixed(2)}</span>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Geral</span>
+                        <span className="text-2xl font-bold text-slate-800">{total}</span>
                     </div>
-                    <DollarSign className="text-slate-400 w-6 h-6" />
+                    <ClipboardList className="text-slate-400 w-6 h-6" />
                 </div>
             </div>
 
@@ -106,13 +97,13 @@ export default function QuotaOrders({ orders, onUpdateOrderStatus }: QuotaOrders
                 </div>
             </div>
 
-            {/* Lista ou Estado Vazio */}
+            {/* Lista */}
             {filteredOrders.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
                     <div className="max-w-sm mx-auto space-y-3">
                         <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
                         <p className="text-sm font-medium text-slate-500">
-                            Nenhum registro de presente encontrado com esses filtros.
+                            Nenhum presente escolhido com esses filtros.
                         </p>
                     </div>
                 </div>
@@ -123,9 +114,7 @@ export default function QuotaOrders({ orders, onUpdateOrderStatus }: QuotaOrders
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     <th className="p-4">Convidado</th>
-                                    <th className="p-4">Item / presente</th>
-                                    <th className="p-4 text-center">Qtd. presentes</th>
-                                    <th className="p-4">Valor Total</th>
+                                    <th className="p-4">Presente Escolhido</th>
                                     <th className="p-4">Status</th>
                                     <th className="p-4 text-center">Ações</th>
                                 </tr>
@@ -138,8 +127,6 @@ export default function QuotaOrders({ orders, onUpdateOrderStatus }: QuotaOrders
                                             <div className="text-xs text-slate-400">{order.guestPhone}</div>
                                         </td>
                                         <td className="p-4 font-medium text-slate-800">{order.giftName}</td>
-                                        <td className="p-4 text-center font-bold text-slate-600">{order.quantity}</td>
-                                        <td className="p-4 font-semibold text-slate-900">R$ {order.totalValue.toFixed(2)}</td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${order.status === 'recebido' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                                                 {order.status === 'recebido' ? 'Recebido' : 'Pendente'}

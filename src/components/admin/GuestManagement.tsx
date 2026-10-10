@@ -34,7 +34,6 @@ interface GuestManagementProps {
     onToggleConfirm: (guestId: string, memberId: string, currentStatus: boolean) => Promise<void>;
     onDeleteItem: (route: 'guests' | 'gifts', id: string) => Promise<void>;
     onUpdateGuest?: (id: string, updatedForm: { name: string; phone: string; side: string; members: { name: string; confirmed: boolean }[]; invitedViaWhatsapp?: boolean; lastInvitedAt?: string | Date }) => Promise<void>;
-    onUpdateOrder?: (orderId: string, updatedFields: { quantity?: number; status?: string }) => Promise<void>;
     onDeleteOrder?: (orderId: string) => Promise<void>;
 }
 
@@ -45,7 +44,6 @@ export default function GuestManagement({
     onToggleConfirm,
     onDeleteItem,
     onUpdateGuest,
-    onUpdateOrder,
     onDeleteOrder
 }: GuestManagementProps) {
     const [form, setForm] = useState({ name: '', phone: '', side: 'noivo' });
@@ -252,7 +250,7 @@ export default function GuestManagement({
                             <th className="p-4">Vínculo</th>
                             <th className="p-4">Status do Convite WhatsApp</th>
                             <th className="p-4">Status dos Integrantes</th>
-                            <th className="p-4">Presentes / presentes Escolhidas</th>
+                            <th className="p-4">Presentes Escolhidos</th>
                             <th className="p-4 text-center">Ações</th>
                         </tr>
                     </thead>
@@ -266,7 +264,6 @@ export default function GuestManagement({
                         ) : (
                             filteredGuests.map((guest) => {
                                 const guestOrders = (orders || []).filter(o => o.guestPhone === guest.phone);
-                                const totalContributed = guestOrders.reduce((acc, o) => acc + o.totalValue, 0);
 
                                 const totalM = guest.members?.length || 0;
                                 const confirmedM = guest.members?.filter((m: any) => m.confirmed).length || 0;
@@ -316,19 +313,12 @@ export default function GuestManagement({
                                             {guestOrders.length > 0 ? (
                                                 <div className="space-y-1.5">
                                                     {guestOrders.map((order) => (
-                                                        <div key={order._id} className="flex flex-col text-xs bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
-                                                            <div className="flex items-center gap-1 font-bold text-amber-900">
-                                                                <Gift size={13} className="text-amber-600 shrink-0" />
-                                                                <span className="truncate">{order.giftName}</span>
-                                                            </div>
-                                                            <div className="text-amber-700 font-medium pl-4">
-                                                                {order.quantity}x presente(s) — R$ {order.totalValue.toFixed(2)} ({order.status})
-                                                            </div>
+                                                        <div key={order._id} className="flex items-center gap-1.5 text-xs bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                                                            <Gift size={13} className="text-amber-600 shrink-0" />
+                                                            <span className="font-bold text-amber-900 truncate">{order.giftName}</span>
+                                                            <span className="text-amber-700 font-medium">({order.status})</span>
                                                         </div>
                                                     ))}
-                                                    <div className="text-[11px] font-bold text-slate-600 pl-1 pt-0.5">
-                                                        Total Geral: R$ {totalContributed.toFixed(2)}
-                                                    </div>
                                                 </div>
                                             ) : (
                                                 <span className="text-xs text-slate-400">—</span>
@@ -412,9 +402,9 @@ export default function GuestManagement({
                                 </div>
                             </div>
 
-                            {/* Exibição de presentes Compradas */}
+                            {/* Presentes Escolhidos pela Família */}
                             <div className="border-t border-slate-100 pt-3">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">presentes Reservadas pela Família</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Presentes Escolhidos pela Família</label>
                                 {editingGuestOrders.length === 0 ? (
                                     <p className="text-xs text-slate-400 italic">Nenhum presente escolhido por esta família.</p>
                                 ) : (
@@ -423,24 +413,16 @@ export default function GuestManagement({
                                             <div key={order._id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 text-xs">
                                                 <div className="flex-1 min-w-0 pr-2">
                                                     <p className="font-semibold text-slate-800 truncate">{order.giftName}</p>
-                                                    <p className="text-slate-500">Total: R$ {order.totalValue.toFixed(2)} ({order.status})</p>
+                                                    <p className="text-slate-500">Status: {order.status}</p>
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        value={order.quantity}
-                                                        onChange={(e) => onUpdateOrder && onUpdateOrder(order._id, { quantity: Number(e.target.value) })}
-                                                        className="w-12 px-1 py-0.5 border border-slate-300 rounded text-center font-bold text-slate-800 bg-white"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onDeleteOrder && onDeleteOrder(order._id)}
-                                                        className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors"
-                                                    >
-                                                        <Trash size={14} />
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onDeleteOrder && onDeleteOrder(order._id)}
+                                                    className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors"
+                                                    title="Remover escolha"
+                                                >
+                                                    <Trash size={14} />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>

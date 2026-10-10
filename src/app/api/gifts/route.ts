@@ -13,7 +13,7 @@ export async function GET() {
 export async function POST(request: Request) {
     await dbConnect();
     const data = await request.json();
-    const gift = await Gift.create({ ...data, claimedQuotas: 0 });
+    const gift = await Gift.create({ ...data, reservations: [] });
     return NextResponse.json(gift, { status: 201 });
 }
 
@@ -21,15 +21,9 @@ export async function PUT(request: Request) {
     await dbConnect();
     try {
         const data = await request.json();
-        const { id, claimedQuotas, ...updateData } = data;
+        const { id, ...updateData } = data;
 
-        const updateQuery: any = { $set: updateData };
-
-        if (claimedQuotas !== undefined) {
-            updateQuery.$inc = { claimedQuotas: Number(claimedQuotas) };
-        }
-
-        const gift = await Gift.findByIdAndUpdate(id, updateQuery, { new: true, runValidators: true });
+        const gift = await Gift.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true });
 
         if (!gift) {
             return NextResponse.json({ error: 'Presente não encontrado' }, { status: 404 });

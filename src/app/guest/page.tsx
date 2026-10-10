@@ -1,19 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Gift, QrCode, AlertCircle, CheckCircle, X, CheckSquare, Square, Sparkles, Calendar, Clock } from 'lucide-react';
+import { CheckCircle, CheckSquare, Square, Sparkles, Calendar, Clock } from 'lucide-react';
 import LocationCards from '@/src/components/LocationCards';
 import GiftList from '@/src/components/GiftList';
-import PixModal from '@/src/components/PixModal';
 
 export default function GuestPage() {
     const [gifts, setGifts] = useState<any[]>([]);
-    const [isPixModalOpen, setIsPixModalOpen] = useState(false);
     const [guestId, setGuestId] = useState<string | null>(null);
 
     const [giftListKey, setGiftListKey] = useState(0);
-    const [pendingSelection, setPendingSelection] = useState<{ gift: any; quantity: number; method: 'physical' | 'pix' } | null>(null);
-    const [activeCartSummary, setActiveCartSummary] = useState<{ items: any[]; totalValue: number } | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const [familyName, setFamilyName] = useState('');
@@ -36,15 +32,6 @@ export default function GuestPage() {
 
     useEffect(() => {
         refreshGiftsFromServer();
-
-        const savedCart = localStorage.getItem('cha_casa_nova_cart');
-        if (savedCart) {
-            try {
-                setActiveCartSummary(JSON.parse(savedCart));
-            } catch (e) {
-                console.error('Erro ao ler carrinho local:', e);
-            }
-        }
 
         const params = new URLSearchParams(window.location.search);
         const id = params.get('id');
@@ -102,17 +89,7 @@ export default function GuestPage() {
         }
     };
 
-    const handleSelectGiftOption = (gift: any, quantity: number, method: 'physical' | 'pix') => {
-        setPendingSelection({ gift, quantity, method });
-    };
-
-    const handleConfirmSelection = async () => {
-        if (!pendingSelection) return;
-
-        const { gift, quantity, method } = pendingSelection;
-        const quotaValue = gift.totalPrice / gift.totalQuotas;
-        const totalItemPrice = quotaValue * quantity;
-
+    const handleSelectGift = async (gift: any) => {
         await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -121,68 +98,19 @@ export default function GuestPage() {
                 guestPhone: familyPhone || '',
                 giftId: gift._id,
                 giftName: gift.name,
-                quantity: quantity,
-                quotaValue: quotaValue,
-                totalValue: totalItemPrice,
-                method: method
+                message: rsvpMessage || ''
             })
         });
 
-        if (method === 'pix') {
-            const structureSummary = {
-                items: [{
-                    giftId: gift._id,
-                    name: gift.name,
-                    quantity: quantity,
-                    quotaValue: quotaValue,
-                    totalItemPrice: totalItemPrice
-                }],
-                totalValue: totalItemPrice
-            };
-            setActiveCartSummary(structureSummary);
-            localStorage.setItem('cha_casa_nova_cart', JSON.stringify(structureSummary));
-            setPendingSelection(null);
-            setIsPixModalOpen(true);
-        } else {
-            setPendingSelection(null);
-            setSuccessMessage(`Obrigado! Sua intenção de presentear com "${gift.name}" foi registrada com sucesso! 🏠✨`);
-            setTimeout(() => setSuccessMessage(null), 6000);
-        }
+        setSuccessMessage(`Obrigado! Vocês escolheram o presente "${gift.name}". 🏠✨`);
+        setTimeout(() => setSuccessMessage(null), 6000);
 
         setGiftListKey(prev => prev + 1);
         refreshGiftsFromServer();
     };
 
-    const handleClearCart = () => {
-        localStorage.removeItem('cha_casa_nova_cart');
-        setActiveCartSummary(null);
-        setGiftListKey(prev => prev + 1);
-    };
-
     return (
         <div className="min-h-screen bg-stone-50 text-stone-800 font-sans selection:bg-amber-100 relative pt-12">
-
-            {activeCartSummary && (
-                <div className="fixed top-0 inset-x-0 bg-stone-900 text-stone-100 px-4 py-2.5 text-xs md:text-sm z-50 shadow-md border-b border-amber-500/20 flex items-center justify-between animate-in slide-in-from-top duration-300">
-                    <div className="flex items-center gap-2 max-w-[70%]">
-                        <Gift className="text-amber-400 shrink-0" size={16} />
-                        <p className="truncate">
-                            Você escolheu presentear com PIX no valor total de <span className="font-bold text-amber-400">R$ {activeCartSummary.totalValue.toFixed(2)}</span>.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setIsPixModalOpen(true)}
-                            className="bg-amber-500 hover:bg-amber-400 text-stone-950 px-3 py-1 rounded-full font-bold text-[11px] uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
-                        >
-                            <QrCode size={12} /> Ver PIX
-                        </button>
-                        <button onClick={handleClearCart} className="text-stone-400 hover:text-stone-200 text-[11px] underline cursor-pointer">
-                            Remover
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {successMessage && (
                 <div className="fixed top-16 inset-x-4 max-w-xl mx-auto bg-emerald-600 text-white p-4 rounded-2xl shadow-xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -194,7 +122,6 @@ export default function GuestPage() {
             {/* HERO SECTION COM IMAGEM COMO <img> ABSOLUTA */}
             <div className="relative min-h-[55vh] md:min-h-[65vh] flex items-center justify-center border-b border-stone-200 overflow-hidden shadow-xl">
 
-                {/* Imagem de fundo como <img> real — não depende de CSS background */}
                 <img
                     src="/cha.jpeg"
                     alt="Chá de Casa Nova"
@@ -202,16 +129,13 @@ export default function GuestPage() {
                     style={{ zIndex: 0 }}
                 />
 
-                {/* Overlay escuro para legibilidade do texto */}
                 <div
                     className="absolute inset-0 bg-gradient-to-b from-stone-950/70 via-stone-950/40 to-stone-950/80"
                     style={{ zIndex: 1 }}
                 />
 
-                {/* Conteúdo por cima */}
                 <div className="relative w-full max-w-4xl mx-auto px-6 py-16 text-center space-y-8" style={{ zIndex: 2 }}>
 
-                    {/* Badge de Saudação */}
                     <div className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-stone-900/90 border border-amber-400/50 backdrop-blur-md shadow-2xl text-amber-200 text-xs md:text-sm font-semibold tracking-widest uppercase">
                         <Sparkles size={15} className="text-amber-400 animate-spin" />
                         <span>
@@ -223,7 +147,6 @@ export default function GuestPage() {
                         </span>
                     </div>
 
-                    {/* Nomes dos Anfitriões */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-center gap-4">
                             <div className="h-[1px] w-16 md:w-28 bg-gradient-to-r from-transparent via-amber-400/80 to-amber-400" />
@@ -235,14 +158,12 @@ export default function GuestPage() {
                         </h1>
                     </div>
 
-                    {/* Frase Inspiradora */}
                     <blockquote className="max-w-xl mx-auto">
                         <p className="text-stone-200/90 font-serif italic text-base md:text-lg tracking-wide drop-shadow-md">
                             &ldquo;Cada cantinho do nosso lar vai guardar um pedacinho de vocês.&rdquo;
                         </p>
                     </blockquote>
 
-                    {/* Data Oficial do Chá */}
                     <div className="pt-2 flex justify-center">
                         <div className="inline-flex flex-col sm:flex-row items-center gap-3 px-6 py-4 rounded-2xl bg-stone-900/90 border border-amber-400/60 backdrop-blur-md shadow-2xl text-stone-100 transition-all hover:border-amber-300">
                             <div className="flex items-center gap-2 text-amber-400 text-xs uppercase tracking-widest font-bold">
@@ -273,7 +194,6 @@ export default function GuestPage() {
                         <h2 className="text-2xl font-serif font-bold text-stone-900">Confirmação de Presença</h2>
                         <p className="text-sm text-stone-500">Selecione individualmente a presença de cada membro abaixo</p>
 
-                        {/* Alerta de Prazo Limite */}
                         <div className="bg-amber-50/90 border border-amber-200/80 rounded-xl p-3.5 flex items-center justify-center gap-2.5 text-xs md:text-sm text-amber-900 shadow-sm">
                             <Calendar size={16} className="text-amber-600 shrink-0" />
                             <span>Por favor, confirme sua presença até o dia <strong className="font-bold text-amber-950">24 de Outubro de 2026</strong>.</span>
@@ -358,72 +278,7 @@ export default function GuestPage() {
             <GiftList
                 key={giftListKey}
                 gifts={gifts}
-                onSelectGiftOption={handleSelectGiftOption}
-            />
-
-            {pendingSelection && (
-                <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                    <div className="bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-6 border border-stone-100 animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center pb-2 border-b border-stone-100">
-                            <div className="flex items-center gap-2 text-stone-800 font-serif font-bold text-lg">
-                                <AlertCircle size={20} className="text-amber-600" />
-                                <h3>Confirmar Presente?</h3>
-                            </div>
-                            <button onClick={() => setPendingSelection(null)} className="text-stone-400 hover:text-stone-600 cursor-pointer">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="space-y-3">
-                            <p className="text-sm text-stone-600">
-                                {pendingSelection.method === 'physical'
-                                    ? `Você confirmou que irá presentear com "${pendingSelection.gift.name}" (${pendingSelection.quantity} presente(s)). Os anfitriões serão avisados!`
-                                    : `Você escolheu contribuir via PIX para "${pendingSelection.gift.name}" (${pendingSelection.quantity} presente(s)).`}
-                            </p>
-
-                            <div className="bg-stone-50 rounded-xl p-4 border border-stone-200/60 space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-stone-500">Presente:</span>
-                                    <span className="font-semibold text-stone-900">{pendingSelection.gift.name}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-stone-500">Quantidade:</span>
-                                    <span className="font-semibold text-stone-800">{pendingSelection.quantity} presente(s)</span>
-                                </div>
-                                <div className="flex justify-between text-sm border-t border-stone-200 pt-2 font-bold">
-                                    <span className="text-stone-800">Valor Total:</span>
-                                    <span className="text-amber-900">
-                                        R$ {((pendingSelection.gift.totalPrice / pendingSelection.gift.totalQuotas) * pendingSelection.quantity).toFixed(2)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setPendingSelection(null)}
-                                className="w-full py-3 border border-stone-200 text-stone-600 font-medium rounded-xl text-xs hover:bg-stone-50 transition-colors uppercase tracking-wider cursor-pointer"
-                            >
-                                Voltar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmSelection}
-                                className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs transition-colors shadow-md uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
-                            >
-                                <CheckCircle size={16} /> Confirmar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <PixModal
-                isOpen={isPixModalOpen}
-                onClose={() => setIsPixModalOpen(false)}
-                cartData={activeCartSummary}
-                pixKey={process.env.NEXT_PUBLIC_PIX_KEY}
+                onSelectGift={handleSelectGift}
             />
         </div>
     );

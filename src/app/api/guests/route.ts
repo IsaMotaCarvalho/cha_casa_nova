@@ -82,22 +82,19 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Família não encontrada' }, { status: 404 });
         }
 
-        // 1. Busca todos os pedidos associados ao telefone deste grupo familiar
+        // Remove os pedidos e as reservas dentro dos presentes
         const guestOrders = await Order.find({ guestPhone: guest.phone });
 
-        // 2. Desfaz as operações de quantidades e limpa os históricos em todas as tabelas
         for (const order of guestOrders) {
             await Gift.findByIdAndUpdate(order.giftId, {
-                $inc: { claimedQuotas: -Number(order.quantity) },
                 $pull: { reservations: { guestPhone: guest.phone } }
             });
         }
 
-        // 3. Remove os pedidos e a família definitivamente
         await Order.deleteMany({ guestPhone: guest.phone });
         await Guest.findByIdAndDelete(id);
 
-        return NextResponse.json({ message: 'Família e todas as seus presentes correspondentes foram removidos com sucesso!' });
+        return NextResponse.json({ message: 'Família e todas as suas escolhas foram removidas com sucesso!' });
     } catch (error) {
         return NextResponse.json({ error: 'Erro ao processar a remoção em cascata da família' }, { status: 400 });
     }

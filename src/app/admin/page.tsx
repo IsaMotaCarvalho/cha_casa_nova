@@ -47,7 +47,7 @@ export default function AdminDashboard() {
         fetchData();
     };
 
-    const handleAddGift = async (giftForm: { name: string; totalPrice: number; totalQuotas: number; imageUrl?: string }) => {
+    const handleAddGift = async (giftForm: { name: string; imageUrl?: string }) => {
         await fetch('/api/gifts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -81,20 +81,11 @@ export default function AdminDashboard() {
         fetchData();
     };
 
-    const handleUpdateGift = async (id: string, updatedForm: { name: string; totalPrice: number; totalQuotas: number; imageUrl?: string }) => {
+    const handleUpdateGift = async (id: string, updatedForm: { name: string; imageUrl?: string }) => {
         await fetch('/api/gifts', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, ...updatedForm }),
-        });
-        fetchData();
-    };
-
-    const handleUpdateOrder = async (orderId: string, updatedFields: { quantity?: number; status?: string }) => {
-        await fetch('/api/orders', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: orderId, ...updatedFields }),
         });
         fetchData();
     };
@@ -118,7 +109,8 @@ export default function AdminDashboard() {
         fetchData();
     };
 
-    const totalQuotasMarked = gifts.reduce((acc, curr) => acc + (curr.claimedQuotas || 0), 0);
+    // Total de presentes já escolhidos (não é mais "cotas")
+    const totalGiftsChosen = (orders || []).length;
 
     const flattenedGuestsForDash = guests.flatMap(g =>
         (g.members || []).map((m: any) => ({
@@ -155,7 +147,7 @@ export default function AdminDashboard() {
                         guests={flattenedGuestsForDash}
                         gifts={gifts}
                         orders={orders}
-                        totalQuotasMarked={totalQuotasMarked}
+                        totalQuotasMarked={totalGiftsChosen}
                     />
                 )}
 
@@ -167,7 +159,6 @@ export default function AdminDashboard() {
                         onToggleConfirm={toggleConfirmMember}
                         onDeleteItem={deleteItem}
                         onUpdateGuest={handleUpdateGuest}
-                        onUpdateOrder={handleUpdateOrder}
                         onDeleteOrder={handleDeleteOrder}
                     />
                 )}
@@ -179,7 +170,6 @@ export default function AdminDashboard() {
                         onAddGift={handleAddGift}
                         onDeleteItem={deleteItem}
                         onUpdateGift={handleUpdateGift}
-                        onUpdateOrder={handleUpdateOrder}
                         onDeleteOrder={handleDeleteOrder}
                     />
                 )}

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, Users, Gift, DollarSign, Image as ImageIcon, X } from 'lucide-react';
+import { LayoutDashboard, Users, Gift, CheckSquare, Image as ImageIcon, X } from 'lucide-react';
 
 interface SidebarProps {
     activeTab: 'dash' | 'guests' | 'gifts' | 'orders' | 'gallery';
@@ -54,7 +54,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }: 
                         onClick={() => { setActiveTab('orders'); setIsOpen(false); }}
                         className={`flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${activeTab === 'orders' ? 'bg-amber-500 text-slate-900 font-semibold shadow-md' : 'hover:bg-slate-800'}`}
                     >
-                        <DollarSign size={20} /> presentes Recebidas
+                        <CheckSquare size={20} /> Presentes Escolhidos
                     </button>
                     <button
                         onClick={() => { setActiveTab('gallery'); setIsOpen(false); }}
