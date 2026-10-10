@@ -10,7 +10,7 @@ interface DashboardOverviewProps {
     totalQuotasMarked: number;
 }
 
-type DetailView = 'total' | 'confirmed' | 'pending' | 'quotas' | null;
+type DetailView = 'total' | 'confirmed' | 'pending' | 'gifts' | null;
 
 export default function DashboardOverview({ guests, gifts, orders, totalQuotasMarked }: DashboardOverviewProps) {
     const [view, setView] = useState<DetailView>(null);
@@ -19,20 +19,21 @@ export default function DashboardOverview({ guests, gifts, orders, totalQuotasMa
     const confirmedGuests = guests.filter(g => g.confirmed);
     const pendingGuests = guests.filter(g => !g.confirmed);
 
-    // Une as reservas utilizando diretamente a coleção centralizada de pedidos
-    const allQuotasDetails = (orders || []).map((order: any) => ({
-        guestName: order.guestName || 'Convidado Confirmado',
-        giftName: order.giftName,
-        quantity: order.quantity,
-        quotaValue: order.quotaValue || (order.totalValue / order.quantity),
-        totalValue: order.totalValue,
+    // Lista simples de presentes escolhidos
+    const allGiftChoices = (orders || []).map((order: any) => ({
+        guestName: order.guestName || 'Convidado',
+        giftName: order.giftName || '—',
+        status: order.status || 'pendente',
         date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('pt-BR') : 'Recente'
     }));
 
     const filteredGuests = guests.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const filteredConfirmed = confirmedGuests.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const filteredPending = pendingGuests.filter(g => !g.confirmed && g.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const filteredQuotas = allQuotasDetails.filter(q => q.guestName.toLowerCase().includes(searchTerm.toLowerCase()) || q.giftName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredChoices = allGiftChoices.filter(q =>
+        q.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.giftName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // Filtra para exibir apenas uma mensagem única por família/grupo
     const uniqueMessages = guests.filter((g, index, self) =>
@@ -80,11 +81,11 @@ export default function DashboardOverview({ guests, gifts, orders, totalQuotasMa
                 </div>
 
                 <div
-                    onClick={() => { setView('quotas'); setSearchTerm(''); }}
-                    className={`p-6 rounded-xl shadow-sm border cursor-pointer transition-all flex items-center justify-between ${view === 'quotas' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md'}`}
+                    onClick={() => { setView('gifts'); setSearchTerm(''); }}
+                    className={`p-6 rounded-xl shadow-sm border cursor-pointer transition-all flex items-center justify-between ${view === 'gifts' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md'}`}
                 >
                     <div>
-                        <p className="text-sm text-slate-500 font-medium">presentes Reservadas</p>
+                        <p className="text-sm text-slate-500 font-medium">Presentes Escolhidos</p>
                         <p className="text-2xl font-bold text-indigo-600">{totalQuotasMarked}</p>
                     </div>
                     <Gift className="text-indigo-500" size={32} />
@@ -99,7 +100,7 @@ export default function DashboardOverview({ guests, gifts, orders, totalQuotasMa
                             {view === 'total' && <>Lista de Todos os Convidados ({guests.length})</>}
                             {view === 'confirmed' && <>Convidados Confirmados ({confirmedGuests.length})</>}
                             {view === 'pending' && <>Convidados Pendentes ({pendingGuests.length})</>}
-                            {view === 'quotas' && <>Detalhamento de presentes Escolhidas ({allQuotasDetails.length})</>}
+                            {view === 'gifts' && <>Presentes Escolhidos ({allGiftChoices.length})</>}
                         </h3>
                         <button onClick={() => setView(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50">
                             <X size={18} />
@@ -122,7 +123,7 @@ export default function DashboardOverview({ guests, gifts, orders, totalQuotasMa
                         <table className="w-full text-left border-collapse text-sm">
                             <thead>
                                 <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
-                                    {view !== 'quotas' ? (
+                                    {view !== 'gifts' ? (
                                         <>
                                             <th className="p-3">Nome</th>
                                             <th className="p-3">Família / Grupo</th>
@@ -132,11 +133,10 @@ export default function DashboardOverview({ guests, gifts, orders, totalQuotasMa
                                         </>
                                     ) : (
                                         <>
-                                            <th className="p-3">Quem Reservou</th>
-                                            <th className="p-3">O que Reservou</th>
-                                            <th className="p-3 text-center">Quantidade</th>
-                                            <th className="p-3">Valor presente</th>
-                                            <th className="p-3">Valor Total</th>
+                                            <th className="p-3">Quem Escolheu</th>
+                                            <th className="p-3">Presente</th>
+                                            <th className="p-3">Data</th>
+                                            <th className="p-3">Status</th>
                                         </>
                                     )}
                                 </tr>
@@ -180,20 +180,23 @@ export default function DashboardOverview({ guests, gifts, orders, totalQuotasMa
                                     </tr>
                                 ))}
 
-                                {view === 'quotas' && filteredQuotas.map((q, i) => (
+                                {view === 'gifts' && filteredChoices.map((q, i) => (
                                     <tr key={i} className="hover:bg-slate-50/80">
                                         <td className="p-3 font-semibold text-slate-900">{q.guestName}</td>
                                         <td className="p-3 text-slate-600">{q.giftName}</td>
-                                        <td className="p-3 text-center font-bold text-indigo-600">{q.quantity}x</td>
-                                        <td className="p-3 text-slate-500">R$ {q.quotaValue.toFixed(2)}</td>
-                                        <td className="p-3 font-bold text-emerald-600">R$ {q.totalValue.toFixed(2)}</td>
+                                        <td className="p-3 text-slate-500">{q.date}</td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${q.status === 'recebido' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                {q.status === 'recebido' ? 'Recebido' : 'Pendente'}
+                                            </span>
+                                        </td>
                                     </tr>
                                 ))}
 
                                 {((view === 'total' && filteredGuests.length === 0) ||
                                     (view === 'confirmed' && filteredConfirmed.length === 0) ||
                                     (view === 'pending' && filteredPending.length === 0) ||
-                                    (view === 'quotas' && filteredQuotas.length === 0)) && (
+                                    (view === 'gifts' && filteredChoices.length === 0)) && (
                                         <tr>
                                             <td colSpan={5} className="p-4 text-center text-slate-400 italic">Nenhum registro encontrado correspondente aos critérios.</td>
                                         </tr>
