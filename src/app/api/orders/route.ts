@@ -3,10 +3,18 @@ import Order from '@/src/models/Order';
 import Gift from '@/src/models/Gift';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
     await dbConnect();
     try {
-        const orders = await Order.find({}).sort({ createdAt: -1 });
+        const { searchParams } = new URL(request.url);
+        const phone = searchParams.get('phone');
+
+        // Se passar o telefone, busca só os pedidos daquele convidado.
+        // Se não passar, busca todos (para o admin).
+        const query = phone ? { guestPhone: phone } : {};
+
+        const orders = await Order.find(query).sort({ createdAt: -1 });
+
         return NextResponse.json(orders, {
             headers: { 'Cache-Control': 'no-store, max-age=0' }
         });

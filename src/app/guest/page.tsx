@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, CheckSquare, Square, Sparkles, Calendar, Clock } from 'lucide-react';
+import { CheckCircle, CheckSquare, Square, Sparkles, Calendar, Clock, Gift, Package } from 'lucide-react';
 import LocationCards from '@/src/components/LocationCards';
 import GiftList from '@/src/components/GiftList';
 
 export default function GuestPage() {
     const [gifts, setGifts] = useState<any[]>([]);
     const [guestId, setGuestId] = useState<string | null>(null);
+    const [guestOrders, setGuestOrders] = useState<any[]>([]);
 
     const [giftListKey, setGiftListKey] = useState(0);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -23,11 +24,30 @@ export default function GuestPage() {
 
     const refreshGiftsFromServer = () => {
         fetch(`/api/gifts?t=${Date.now()}`, { cache: 'no-store' })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Falha ao buscar presentes');
+                return res.json();
+            })
             .then(data => {
                 if (Array.isArray(data)) setGifts(data);
             })
             .catch(err => console.error('Erro ao buscar presentes:', err));
+    };
+
+    const refreshGuestOrders = (phone: string) => {
+        if (!phone) return;
+        // Agora a API já filtra pelo telefone no servidor!
+        fetch(`/api/orders?phone=${phone}&t=${Date.now()}`, { cache: 'no-store' })
+            .then(res => {
+                if (!res.ok) throw new Error('Falha ao buscar pedidos');
+                return res.json();
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setGuestOrders(data);
+                }
+            })
+            .catch(err => console.error('Erro ao buscar pedidos do convidado:', err));
     };
 
     useEffect(() => {
@@ -41,7 +61,10 @@ export default function GuestPage() {
             setIsLoadingGuest(true);
 
             fetch(`/api/guests?id=${id}`)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Falha ao buscar convidado');
+                    return res.json();
+                })
                 .then(async (data) => {
                     if (data && !data.error) {
                         setFamilyName(data.name || '');
@@ -49,6 +72,10 @@ export default function GuestPage() {
                         setFamilySide(data.side || 'noivo');
                         setFamilyMembers(data.members || []);
                         setRsvpMessage(data.message || '');
+
+                        if (data.phone) {
+                            refreshGuestOrders(data.phone);
+                        }
 
                         if (data.members?.length > 0 && data.members.every((m: any) => m.confirmed)) {
                             setRsvpSuccess(true);
@@ -107,6 +134,7 @@ export default function GuestPage() {
 
         setGiftListKey(prev => prev + 1);
         refreshGiftsFromServer();
+        refreshGuestOrders(familyPhone);
     };
 
     return (
@@ -187,6 +215,50 @@ export default function GuestPage() {
             </div>
 
             <LocationCards />
+
+            {/* SEÇÃO DE PRESENTES JÁ ESCOLHIDOS PELO CONVIDADO */}
+            {guestOrders.length > 0 && (
+                <section className="max-w-2xl mx-auto my-12 px-4">
+                    <div className="bg-white rounded-2xl p-6 shadow-md border border-stone-100 space-y-4">
+                        <div className="flex items-center gap-2 border-b border-stone-100 pb-3">
+                            <Gift size={20} className="text-amber-600" />
+                            <h2 className="text-xl font-serif font-bold text-stone-900">Presente(s) que vocês já escolheram</h2>
+                        </div>
+
+                        <p className="text-sm text-stone-500">
+                            Obrigado por fazer parte do nosso novo lar! Aqui estão os presentes que sua família selecionou:
+                        </p>
+
+                        <div className="space-y-2">
+                            {guestOrders.map((order: any) => (
+                                <div
+                                    key={order._id}
+                                    className="flex items-center justify-between gap-3 bg-amber-50/60 border border-amber-200 rounded-xl p-3"
+                                >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <Package size={18} className="text-amber-600 shrink-0" />
+                                        <span className="font-semibold text-stone-800 text-sm truncate">
+                                            {order.giftName}
+                                        </span>
+                                    </div>
+                                    <span
+                                        className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 ${order.status === 'recebido'
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-amber-100 text-amber-800'
+                                            }`}
+                                    >
+                                        {order.status === 'recebido' ? 'Recebido' : 'Pendente'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <p className="text-xs text-stone-400 italic text-center pt-2">
+                            Se precisar alterar algo, fale com os noivos. 💛
+                        </p>
+                    </div>
+                </section>
+            )}
 
             <section className="max-w-2xl mx-auto my-12 px-4">
                 <div className="bg-white rounded-2xl p-6 shadow-md border border-stone-100 space-y-6">
